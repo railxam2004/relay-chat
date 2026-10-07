@@ -64,6 +64,8 @@ describe('API и WebSocket',()=>{
     const sends=await Promise.all(Array.from({length:6},()=>api(`/channels/${general}/messages`,'POST',{body:'Одна запись',clientId},alice.token)));
     assert.equal(new Set(sends.map(x=>x.body.id)).size,1);
     assert.equal(sends.filter(x=>x.status===201).length,1);
+    const other=await api(`/channels/${general}/messages`,'POST',{body:'Другой автор с тем же clientId',clientId},bob.token);
+    assert.equal(other.status,201);assert.notEqual(other.body.id,sends[0].body.id);
   });
   it('проверяет авторство, ответы и удаление',async()=>{
     assert.equal((await api(`/messages/${message.id}`,'PATCH',{body:'Чужая правка'},bob.token)).status,403);
@@ -124,7 +126,7 @@ describe('API и WebSocket',()=>{
 
 it('сохраняет PostgreSQL-данные на диск и переживает перезапуск',async()=>{
   const directory=await mkdtemp(path.join(tmpdir(),'relay-persistence-'));
-  const config=getConfig({dbDriver:'pglite',pgliteDir:directory});
+  const config=getConfig({dbDriver:'pglite',pgliteDir:path.join(directory,'nested/relay')});
   try {
     const first=await createDb(config);
     await first.query("UPDATE channels SET description=$1 WHERE id=$2",['Сохранено на диск',general]);await first.close();

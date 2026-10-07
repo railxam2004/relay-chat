@@ -1,0 +1,54 @@
+name: Tests
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: relay_test
+          POSTGRES_USER: relay
+          POSTGRES_PASSWORD: test_password
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U relay -d relay_test"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+      redis:
+        image: redis:7.4-alpine
+        ports: ['6379:6379']
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24', cache: npm}
+      - run: npm ci
+      - run: npm run check
+      - name: PostgreSQL and Redis integration
+        run: npm test
+        env:
+          TEST_DATABASE_URL: postgres://relay:test_password@localhost:5432/relay_test
+          TEST_REDIS_URL: redis://localhost:6379
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: browser-screenshots, path: test-results/}
+      - name: Check Docker Compose and build server image
+        run: |
+          POSTGRES_PASSWORD=ci_password docker compose -f compose.yaml -f compose.search.yaml config -q
+          docker build -t relay-chat:test .
+      - name: VM-style stack smoke test
+        run: |
+          printf 'POSTGRES_PASSWORD=ci_password\n' > .env
+          docker compose up -d --wait
+          curl --fail http://localhost:8080/api/health
+          docker compose down
