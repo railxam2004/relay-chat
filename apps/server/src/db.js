@@ -1,4 +1,5 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, mkdir } from 'node:fs/promises';
+import path from 'node:path';
 import { Pool } from 'pg';
 import { PGlite } from '@electric-sql/pglite';
 
@@ -19,6 +20,7 @@ export async function createDb(config) {
       close: () => pool.end(),
     };
   } else {
+    if (config.pgliteDir !== ':memory:') await mkdir(path.dirname(config.pgliteDir), { recursive: true });
     const local = new PGlite(config.pgliteDir === ':memory:' ? undefined : config.pgliteDir);
     await local.waitReady;
     db = { query: (sql, args = []) => local.query(sql, args), tx: fn => local.transaction(fn), close: () => local.close() };
