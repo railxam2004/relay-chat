@@ -17,6 +17,7 @@
   "build": {
     "appId": "dev.relay.chat",
     "productName": "Relay Chat",
+    "icon": "build/icon.png",
     "directories": {
       "output": "../../release/desktop"
     },
@@ -28,6 +29,7 @@
     ],
     "beforePack": "./copy-web.cjs",
     "win": {
+      "icon": "build/icon.ico",
       "target": [
         "portable",
         "nsis"
