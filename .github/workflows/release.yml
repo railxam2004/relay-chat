@@ -3,8 +3,6 @@ on:
   workflow_dispatch:
   push:
     tags: ['v*']
-    branches: [main]
-    paths: ['.github/workflows/release.yml', 'scripts/publish-release.mjs', 'apps/desktop/package.json']
 permissions:
   contents: read
 concurrency:

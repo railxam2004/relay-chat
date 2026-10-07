@@ -1,0 +1,76 @@
+name: Publish stored builds
+on:
+  workflow_dispatch:
+    inputs:
+      source_run:
+        description: ID of the Build applications run with five successful builds
+        required: true
+        default: '37691191254'
+        type: string
+      release_tag:
+        description: Release version tag
+        required: true
+        default: v1.0.0
+        type: string
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-existing-build.yml']
+permissions:
+  contents: read
+concurrency:
+  group: relay-publish-${{ inputs.release_tag || 'v1.0.0' }}
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    env:
+      SOURCE_RUN: ${{ inputs.source_run || '37691191254' }}
+      RELEASE_TAG: ${{ inputs.release_tag || 'v1.0.0' }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - name: Verify source builds
+        id: source
+        run: |
+          node --input-type=module <<'JS'
+          import {spawnSync} from 'node:child_process';
+          import {appendFileSync} from 'node:fs';
+          const repo=process.env.GITHUB_REPOSITORY;
+          const id=process.env.SOURCE_RUN;
+          if(!/^[1-9]\d{0,19}$/.test(id)||!/^v\d+\.\d+\.\d+(?:[-+][\w.-]+)?$/.test(process.env.RELEASE_TAG))throw new Error('Invalid source run or tag');
+          function api(path){
+            const result=spawnSync('gh',['api',path],{encoding:'utf8'});
+            if(result.error||result.status!==0)throw new Error(result.error||result.stderr);
+            return JSON.parse(result.stdout);
+          }
+          const run=api(`repos/${repo}/actions/runs/${id}`);
+          if(run.path.split('@')[0]!=='.github/workflows/release.yml'||run.head_repository.full_name!==repo||! /^[a-f0-9]{40}$/.test(run.head_sha))throw new Error('Unexpected build source');
+          const jobs=api(`repos/${repo}/actions/runs/${id}/jobs?per_page=100`).jobs;
+          const names=['android','ios-simulator','desktop (windows-latest)','desktop (ubuntu-latest)','desktop (macos-latest)'];
+          if(names.some(name=>!jobs.some(job=>job.name===name&&job.status==='completed'&&job.conclusion==='success')))throw new Error('All five native builds must pass');
+          appendFileSync(process.env.GITHUB_OUTPUT,`sha=${run.head_sha}\n`);
+          console.log(`Verified five builds at ${run.head_sha}`);
+          JS
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: relay-*
+          path: release/assets
+          merge-multiple: true
+          run-id: ${{ env.SOURCE_RUN }}
+          repository: ${{ github.repository }}
+          github-token: ${{ github.token }}
+      - name: Check release names and checksums
+        run: |
+          node --check scripts/publish-release.mjs
+          node scripts/publish-release.mjs --dry-run
+        env:
+          RELEASE_TARGET_SHA: ${{ steps.source.outputs.sha }}
+      - name: Publish verified downloads
+        run: node scripts/publish-release.mjs
+        env:
+          RELEASE_TARGET_SHA: ${{ steps.source.outputs.sha }}

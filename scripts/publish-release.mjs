@@ -1,14 +1,14 @@
-import {readdir,readFile,writeFile} from 'node:fs/promises';
+import {readdir,readFile,writeFile,rename} from 'node:fs/promises';
 import {createReadStream} from 'node:fs';
 import {createHash} from 'node:crypto';
-import {basename,join,resolve} from 'node:path';
+import {basename,dirname,join,resolve} from 'node:path';
 import {spawnSync} from 'node:child_process';
 
 const root=resolve(process.env.RELEASE_ASSET_DIR||'release/assets');
 const repo=process.env.GITHUB_REPOSITORY;
-const target=process.env.GITHUB_SHA;
+const target=process.env.RELEASE_TARGET_SHA||process.env.GITHUB_SHA;
 const version=JSON.parse(await readFile('package.json','utf8')).version;
-const tag=process.env.GITHUB_REF_TYPE==='tag'?process.env.GITHUB_REF_NAME:`v${version}`;
+const tag=process.env.RELEASE_TAG||(process.env.GITHUB_REF_TYPE==='tag'?process.env.GITHUB_REF_NAME:`v${version}`);
 const dryRun=process.argv.includes('--dry-run');
 if(!/^[\w.-]+\/[\w.-]+$/.test(repo||'')||!/^[a-f0-9]{40}$/.test(target||'')||!/^v\d+\.\d+\.\d+(?:[-+][\w.-]+)?$/.test(tag||''))throw new Error('Invalid release repository, commit or version');
 
@@ -21,7 +21,16 @@ async function walk(dir){
   }
   return paths;
 }
-const files=(await walk(root)).sort((a,b)=>basename(a).localeCompare(basename(b)));
+// Use the names GitHub will preserve before generating checksums.
+const normalized=(await walk(root)).map(path=>({path,name:basename(path).replace(/[^A-Za-z0-9._+-]/g,'.').replace(/^\.+|\.+$/g,'')}));
+if(normalized.some(file=>!file.name)||new Set(normalized.map(file=>file.name)).size!==normalized.length)throw new Error('Release asset names collide after normalization');
+const files=[];
+for(const file of normalized){
+  const path=join(dirname(file.path),file.name);
+  if(path!==file.path)await rename(file.path,path);
+  files.push(path);
+}
+files.sort((a,b)=>basename(a).localeCompare(basename(b)));
 if(!files.length)throw new Error('No application files to publish');
 if(new Set(files.map(path=>basename(path))).size!==files.length)throw new Error('Release asset names must be unique');
 const digests=new Map();
@@ -53,15 +62,22 @@ if(lookup.status===0){
   release={assets:[]};
 }
 const missing=[];
+let replaceChecksum=false;
 for(const path of files){
   const existing=release.assets.find(asset=>asset.name===basename(path));
   if(!existing)missing.push(path);
-  else if(existing.digest&&existing.digest!==`sha256:${digests.get(basename(path))}`)throw new Error(`Existing asset differs: ${existing.name}`);
+  else if(existing.state!=='uploaded')throw new Error(`Existing asset is incomplete: ${existing.name}`);
+  else if(existing.digest!==`sha256:${digests.get(basename(path))}`){
+    // Repair only checksum metadata after all existing application files match.
+    if(basename(path)===basename(checksumPath))replaceChecksum=true;
+    else throw new Error(`Existing asset differs: ${existing.name}`);
+  }
 }
 if(missing.length)gh(['release','upload',tag,'--repo',repo,...missing]);
+if(replaceChecksum)gh(['release','upload',tag,'--repo',repo,checksumPath,'--clobber']);
 const published=JSON.parse(gh(['api',`repos/${repo}/releases/tags/${encodeURIComponent(tag)}`]).stdout);
 for(const path of files){
   const asset=published.assets.find(value=>value.name===basename(path));
-  if(!asset||asset.state!=='uploaded'||(asset.digest&&asset.digest!==`sha256:${digests.get(basename(path))}`))throw new Error(`Asset was not uploaded correctly: ${basename(path)}`);
+  if(!asset||asset.state!=='uploaded'||asset.digest!==`sha256:${digests.get(basename(path))}`)throw new Error(`Asset was not uploaded correctly: ${basename(path)}`);
 }
 console.log(`Published ${published.html_url} with ${files.length} verified assets`);

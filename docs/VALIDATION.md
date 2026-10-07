@@ -23,8 +23,11 @@
 | Мобильная ширина | Горизонтальной прокрутки нет |
 | Ошибки JavaScript в браузере | Не обнаружены |
 | Native sync Android/iOS | Выполнен |
-| Android APK | Gradle assembleDebug: BUILD SUCCESSFUL, 93 задачи; JDK 21, SDK 36 |
-| Electron Windows x64 | Сформирована переносимая папка с exe и ресурсами |
+| Android APK | Gradle assembleDebug успешно выполнен локально и в GitHub Actions; JDK 21, SDK 36 |
+| Electron Windows x64 | Portable exe и установщик NSIS успешно собраны на Windows runner |
+| Electron Linux x64 | AppImage и deb успешно собраны на Ubuntu runner |
+| Electron macOS arm64 | DMG успешно собран на macOS runner |
+| iOS Simulator | xcodebuild успешно скомпилировал приложение; bundle сохранён в ZIP |
 | YAML Compose/Actions и shell-скрипты | Синтаксис проверен |
 | npm audit production-зависимостей | 0 обнаруженных уязвимостей на момент проверки |
 
@@ -53,7 +56,7 @@ Vite сообщает о крупном основном JS-чанке (окол
 
 - Docker Engine в локальной среде сборки отсутствует; контейнеры успешно запущены в GitHub Actions. Это подтверждает работу Compose-стека на CI runner, не факт развёртывания на пользовательской VM.
 - PostgreSQL и Redis проверены в GitHub Actions. Elasticsearch отдельно ещё не запускался; поиск без него проверен через PostgreSQL.
-- Windows-бинарник собран кросс-платформенно, на Windows в этой среде не запускался. Веб-клиент внутри него проверен браузером.
+- Десктопные пакеты скомпилированы на Windows/Linux/macOS runners. Запуск этих установочных файлов на пользовательских устройствах отдельно не проверялся; встроенный веб-клиент проверен браузером.
 - Android APK успешно скомпилирован; на физическом телефоне/эмуляторе здесь не запускался. Мобильный интерфейс проверен браузером.
-- iOS требует macOS/Xcode; native-проект создан и синхронизирован, локально не компилировался.
+- iOS-приложение успешно собрано для Xcode Simulator в GitHub Actions. На физическом iPhone отдельно не запускалось; для него требуется Apple signing team.
 - Код, история реализации, ветки, README и workflow опубликованы в [GitHub](https://github.com/railxam2004/relay-chat). Состояние CI доступно в Actions. VM отдельно не развёрнута: нужен доступ к целевому серверу; скрипт развёртывания подготовлен.

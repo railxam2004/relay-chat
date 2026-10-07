@@ -2,7 +2,7 @@
 
 Учебный чат с каналами для **браузера, Android/iOS и десктопа**. Один сервер и общие аккаунты для всех устройств. Проект реализован индивидуально.
 
-Репозиторий: [railxam2004/relay-chat](https://github.com/railxam2004/relay-chat).
+Репозиторий: [railxam2004/relay-chat](https://github.com/railxam2004/relay-chat). Готовые приложения: [релиз 1.0.0](https://github.com/railxam2004/relay-chat/releases/tag/v1.0.0).
 
 ![Десктопный интерфейс](docs/images/web-desktop.png)
 
@@ -135,7 +135,7 @@ npm run dist -w apps/desktop
 
 Результат — `release/desktop/`. Windows: portable `.exe` и установщик NSIS; Linux: AppImage/deb; macOS: dmg. Для выпусков используется GitHub Actions, см. ниже. Неподписанные сборки предназначены для учебной демонстрации.
 
-Переносимая Windows-сборка из поставки распаковывается целиком: запускайте `Relay Chat.exe` внутри папки, сохраняя лежащие рядом файлы.
+В GitHub Releases portable-сборка Windows — один `.exe`: скачайте и запустите его. Если используете архив переносимой папки из первоначальной поставки, распакуйте его целиком и запускайте `Relay Chat.exe`, сохраняя лежащие рядом файлы.
 
 ## Мобильное приложение
 
@@ -213,7 +213,7 @@ git clone docs/relay-chat-original.bundle relay-chat-original
 
 Не загружайте `.env`, базы, `node_modules` и приватные ключи; они исключены через `.gitignore`.
 
-[GitHub Actions](https://github.com/railxam2004/relay-chat/actions) автоматически проверяет `main`/`develop`. Workflow **Build applications** собирает Android APK, Windows/Linux/macOS и iOS simulator и публикует файлы с контрольными суммами в [Releases](https://github.com/railxam2004/relay-chat/releases). Он запускается вручную, по тегам `v*` и при изменении самого workflow публикации в `main`. При ручном запуске версия берётся из `package.json`; при запуске по тегу используется этот тег. Развёртывание на VM выполняется отдельно по инструкции выше.
+[GitHub Actions](https://github.com/railxam2004/relay-chat/actions) автоматически проверяет `main`/`develop`. Workflow **Build applications** собирает Android APK, Windows/Linux/macOS и iOS simulator и публикует файлы с контрольными суммами в [Releases](https://github.com/railxam2004/relay-chat/releases). Он запускается вручную и по тегам `v*`. При ручном запуске версия берётся из `package.json`; при запуске по тегу используется этот тег. Для повторной публикации уже собранных файлов есть workflow **Publish stored builds**: укажите ID исходного запуска **Build applications** и тег. Он проверяет успешность пяти сборок и SHA исходного коммита, сверяет хеши приложений и может исправить файл контрольных сумм без замены бинарников. Развёртывание на VM выполняется отдельно по инструкции выше.
 
 ## Структура
 
