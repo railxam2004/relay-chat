@@ -29,7 +29,13 @@ try{
   }
   await register(alice,'alice_e2e','Алиса');await register(bob,'bob_e2e','Боб');
   await expect(alice.getByText('Подключено',{exact:true})).toBeVisible();
-  async function send(page,body){await page.getByRole('textbox',{name:'Сообщение',exact:true}).fill(body);await page.getByRole('button',{name:'Отправить сообщение',exact:true}).click();}
+  async function send(page,body){
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    const composer=page.getByRole('textbox',{name:'Сообщение',exact:true});
+    await composer.fill(body);await expect(composer).toHaveValue(body);
+    await page.getByRole('button',{name:'Отправить сообщение',exact:true}).click();
+    await expect(composer).toHaveValue('');
+  }
   await send(alice,'Всем привет! Проверяю наш чат.');
   await expect(bob.getByTestId('message').filter({hasText:'Всем привет! Проверяю наш чат.'})).toHaveCount(1);
   await send(bob,'Привет! С телефона всё работает.');
