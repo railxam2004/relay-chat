@@ -1,0 +1,35 @@
+{
+  "name": "relay-chat",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Чат с каналами: Web, Ionic/Capacitor, Electron",
+  "type": "module",
+  "workspaces": [
+    "apps/server",
+    "apps/web",
+    "apps/desktop"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c cyan,magenta \"npm run dev -w apps/server\" \"npm run dev -w apps/web\"",
+    "build": "npm run build -w apps/web",
+    "start": "npm run start -w apps/server",
+    "test": "npm run test -w apps/server",
+    "check": "npm run check -w apps/web && npm test && npm run build",
+    "test:e2e": "node tests/e2e.mjs",
+    "test:load": "node scripts/load-test.mjs",
+    "desktop": "npm run start -w apps/desktop",
+    "desktop:pack": "npm run pack -w apps/desktop",
+    "mobile:sync": "npm run build && npm run mobile:sync -w apps/web",
+    "mobile:android": "npm run mobile:android -w apps/web",
+    "mobile:ios": "npm run mobile:ios -w apps/web",
+    "search:reindex": "npm run search:reindex -w apps/server"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@sparticuz/chromium": "153.0.0",
+    "concurrently": "10.0.5"
+  }
+}
