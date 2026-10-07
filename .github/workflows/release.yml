@@ -21,6 +21,9 @@ jobs:
       - uses: actions/setup-java@v4
         with: {distribution: temurin, java-version: '21'}
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
       - run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0' 'build-tools;36.0.0'
       - run: npm ci
       - run: npm run build
@@ -39,6 +42,7 @@ jobs:
           if-no-files-found: error
   desktop:
     strategy:
+      fail-fast: false
       matrix: {os: [windows-latest, ubuntu-latest, macos-latest]}
     runs-on: ${{ matrix.os }}
     env:
@@ -49,7 +53,7 @@ jobs:
         with: {node-version: '24', cache: npm}
       - run: npm ci
       - run: npm run build
-      - run: npm run dist -w apps/desktop
+      - run: npm run dist -w apps/desktop -- --publish never
       - uses: actions/upload-artifact@v4
         with:
           name: relay-desktop-${{ matrix.os }}
