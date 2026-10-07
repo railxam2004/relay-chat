@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "description": "Relay Chat для Windows, Linux и macOS",
-  "author": "Relay Chat contributors",
+  "author": {
+    "name": "railxam2004",
+    "email": "207613795+railxam2004@users.noreply.github.com"
+  },
   "main": "main.cjs",
   "scripts": {
     "start": "electron .",

@@ -213,7 +213,7 @@ git clone docs/relay-chat-original.bundle relay-chat-original
 
 Не загружайте `.env`, базы, `node_modules` и приватные ключи; они исключены через `.gitignore`.
 
-[GitHub Actions](https://github.com/railxam2004/relay-chat/actions) автоматически проверяет `main`/`develop`. В **Actions → Build applications → Run workflow** собираются Android APK, Windows/Linux/macOS и iOS simulator; готовые файлы доступны в artifacts. Сборки также запускаются по тегам `v*`. Развёртывание на VM выполняется отдельно по инструкции выше.
+[GitHub Actions](https://github.com/railxam2004/relay-chat/actions) автоматически проверяет `main`/`develop`. Workflow **Build applications** собирает Android APK, Windows/Linux/macOS и iOS simulator и публикует файлы с контрольными суммами в [Releases](https://github.com/railxam2004/relay-chat/releases). Он запускается вручную, по тегам `v*` и при изменении самого workflow публикации в `main`. При ручном запуске версия берётся из `package.json`; при запуске по тегу используется этот тег. Развёртывание на VM выполняется отдельно по инструкции выше.
 
 ## Структура
 

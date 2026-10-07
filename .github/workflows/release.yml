@@ -3,8 +3,13 @@ on:
   workflow_dispatch:
   push:
     tags: ['v*']
+    branches: [main]
+    paths: ['.github/workflows/release.yml', 'scripts/publish-release.mjs']
 permissions:
   contents: read
+concurrency:
+  group: relay-release-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   android:
     runs-on: ubuntu-latest
@@ -23,14 +28,21 @@ jobs:
       - run: chmod +x apps/web/android/gradlew
       - run: ./gradlew assembleDebug
         working-directory: apps/web/android
+      - name: Prepare Android download
+        run: |
+          mkdir -p release/android
+          cp apps/web/android/app/build/outputs/apk/debug/app-debug.apk release/android/Relay-Chat-Android.apk
       - uses: actions/upload-artifact@v4
         with:
           name: relay-android-apk
-          path: apps/web/android/app/build/outputs/apk/debug/app-debug.apk
+          path: release/android/Relay-Chat-Android.apk
+          if-no-files-found: error
   desktop:
     strategy:
       matrix: {os: [windows-latest, ubuntu-latest, macos-latest]}
     runs-on: ${{ matrix.os }}
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -41,6 +53,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: relay-desktop-${{ matrix.os }}
+          if-no-files-found: error
           path: |
             release/desktop/*.exe
             release/desktop/*.AppImage
@@ -58,5 +71,25 @@ jobs:
       - run: npm run mobile:sync -w apps/web
       - name: Compile for iOS simulator
         run: xcodebuild -project apps/web/ios/App/App.xcodeproj -scheme App -sdk iphonesimulator -configuration Debug -derivedDataPath release/ios CODE_SIGNING_ALLOWED=NO build
+      - name: Preserve iOS application bundle
+        run: ditto -c -k --sequesterRsrc --keepParent release/ios/Build/Products/Debug-iphonesimulator/App.app release/ios/Relay-Chat-iOS-Simulator.zip
       - uses: actions/upload-artifact@v4
-        with: {name: relay-ios-simulator, path: release/ios/Build/Products/Debug-iphonesimulator/App.app}
+        with: {name: relay-ios-simulator, path: release/ios/Relay-Chat-iOS-Simulator.zip, if-no-files-found: error}
+  publish:
+    needs: [android, desktop, ios-simulator]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: relay-*
+          path: release/assets
+          merge-multiple: true
+      - name: Publish application downloads
+        run: node scripts/publish-release.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
