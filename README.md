@@ -2,6 +2,8 @@
 
 Учебный чат с каналами для **браузера, Android/iOS и десктопа**. Один сервер и общие аккаунты для всех устройств. Проект реализован индивидуально.
 
+Репозиторий: [railxam2004/relay-chat](https://github.com/railxam2004/relay-chat).
+
 ![Десктопный интерфейс](docs/images/web-desktop.png)
 
 ## Что работает
@@ -38,6 +40,8 @@
 Для проверки веб-версии нужны только Node.js и интернет для первой установки зависимостей. Docker, отдельный PostgreSQL и `.env` не обязательны.
 
 ```bash
+git clone https://github.com/railxam2004/relay-chat.git
+cd relay-chat
 npm ci
 npm run build
 npm start
@@ -191,27 +195,25 @@ npm run test:load -- --url=http://localhost:3001 --users=10 --messages=100 --con
 
 ## GitHub, README и ветки для сдачи
 
-В поставке есть Git bundle с историей и ветками. Если проект распакован из архива, историю можно восстановить в **новую папку**:
+Основной репозиторий: [railxam2004/relay-chat](https://github.com/railxam2004/relay-chat). Клонирование сохраняет историю реализации и ветки:
 
 ```bash
-git clone relay-chat.bundle relay-chat-git
-cd relay-chat-git
+git clone https://github.com/railxam2004/relay-chat.git
+cd relay-chat
 git branch -a
 ```
 
-Ветки: `main` — готовая версия, `develop` — интеграция, `feature/server`, `feature/clients`, `feature/infrastructure` — этапы реализации. Ветки сохранились в bundle; они могут отображаться как `remotes/origin/...` после клонирования. Для локальной ветки: `git checkout develop`.
+Ветки: `main` — готовая версия, `develop` — интеграция, `feature/server`, `feature/clients`, `feature/infrastructure` — этапы реализации. После клонирования ветки отображаются как `remotes/origin/...`; для локальной ветки: `git checkout develop`.
 
-Создайте **пустой** репозиторий `relay-chat` в своём GitHub, без автоматически добавленных README/лицензии, затем замените URL:
+Публикация через GitHub API сохраняет сообщения коммитов и граф слияний. Точные исходные SHA, даты и локальное авторство также сохранены в резервной копии [docs/relay-chat-original.bundle](docs/relay-chat-original.bundle). При необходимости восстановите её в **новую папку**:
 
 ```bash
-git remote set-url origin https://github.com/YOUR_LOGIN/relay-chat.git
-git push -u origin main
-git push origin origin/develop:develop origin/feature/server:feature/server origin/feature/clients:feature/clients origin/feature/infrastructure:feature/infrastructure
+git clone docs/relay-chat-original.bundle relay-chat-original
 ```
 
-Если `develop` уже создан локально, можно использовать `git push -u origin develop`. Не загружайте `.env`, базы, `node_modules` и приватные ключи; они исключены через `.gitignore`.
+Не загружайте `.env`, базы, `node_modules` и приватные ключи; они исключены через `.gitignore`.
 
-GitHub Actions автоматически проверяет `main`/`develop`. В **Actions → Build applications → Run workflow** собираются Android APK, Windows/Linux/macOS и iOS simulator; готовые файлы доступны в artifacts. Для сборки по версии можно создать и отправить тег `v1.0.0`. Сам GitHub и VM требуют доступа владельца аккаунта/сервера; поставка не содержит выдуманных адресов развёртывания.
+[GitHub Actions](https://github.com/railxam2004/relay-chat/actions) автоматически проверяет `main`/`develop`. В **Actions → Build applications → Run workflow** собираются Android APK, Windows/Linux/macOS и iOS simulator; готовые файлы доступны в artifacts. Сборки также запускаются по тегам `v*`. Развёртывание на VM выполняется отдельно по инструкции выше.
 
 ## Структура
 
