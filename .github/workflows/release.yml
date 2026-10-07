@@ -1,0 +1,62 @@
+name: Build applications
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    env: {ELECTRON_SKIP_BINARY_DOWNLOAD: 1}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24', cache: npm}
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '21'}
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0' 'build-tools;36.0.0'
+      - run: npm ci
+      - run: npm run build
+      - run: npm run mobile:sync -w apps/web
+      - run: chmod +x apps/web/android/gradlew
+      - run: ./gradlew assembleDebug
+        working-directory: apps/web/android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: relay-android-apk
+          path: apps/web/android/app/build/outputs/apk/debug/app-debug.apk
+  desktop:
+    strategy:
+      matrix: {os: [windows-latest, ubuntu-latest, macos-latest]}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24', cache: npm}
+      - run: npm ci
+      - run: npm run build
+      - run: npm run dist -w apps/desktop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: relay-desktop-${{ matrix.os }}
+          path: |
+            release/desktop/*.exe
+            release/desktop/*.AppImage
+            release/desktop/*.deb
+            release/desktop/*.dmg
+  ios-simulator:
+    runs-on: macos-latest
+    env: {ELECTRON_SKIP_BINARY_DOWNLOAD: 1}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24', cache: npm}
+      - run: npm ci
+      - run: npm run build
+      - run: npm run mobile:sync -w apps/web
+      - name: Compile for iOS simulator
+        run: xcodebuild -project apps/web/ios/App/App.xcodeproj -scheme App -sdk iphonesimulator -configuration Debug -derivedDataPath release/ios CODE_SIGNING_ALLOWED=NO build
+      - uses: actions/upload-artifact@v4
+        with: {name: relay-ios-simulator, path: release/ios/Build/Products/Debug-iphonesimulator/App.app}
